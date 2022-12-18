@@ -30,5 +30,6 @@ TODO:
     Run once before mover loop in sputniPIC.cpp
     dealloc after.
     Is the time different? Observations?
-5. Write report
+5. Test if it makes a difference between 2D/3D.
+6. Write report
 
