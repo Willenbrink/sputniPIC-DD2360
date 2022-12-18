@@ -235,6 +235,9 @@ void mover_PC_gpu(struct particles* part, struct EMfield* field, struct grid* gr
     // print species and subcycling
     std::cout << "***  MOVER with SUBCYCLYING "<< param->n_sub_cycles << " - species " << part->species_ID << " ***" << std::endl;
 
+    // part field grd are on the CPU, with CPU pointers
+    // host-* are on the CPU, with GPU pointers
+    // dev-* are on the GPU, with GPU pointers
     struct particles *hostpart;
     struct particles *devpart;
     struct EMfield *hostfield;
