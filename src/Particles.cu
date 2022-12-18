@@ -89,6 +89,7 @@ __global__ void mover_PC_kernel(struct particles * part,
     half qomdt2 = __float2half(part->qom*dto2/param->c);
     half omdtsq, ut, vt, wt, udotb;
     FPpart denom;
+    half grdInvVOL = __float2half(grd->invVOL);
 
     // local (to the particle) electric and magnetic field
     half Exl=0.0, Eyl=0.0, Ezl=0.0, Bxl=0.0, Byl=0.0, Bzl=0.0;
@@ -123,7 +124,7 @@ __global__ void mover_PC_kernel(struct particles * part,
         for (int ii = 0; ii < 2; ii++)
             for (int jj = 0; jj < 2; jj++)
                 for (int kk = 0; kk < 2; kk++)
-                    weight[ii][jj][kk] = xi[ii] * eta[jj] * zeta[kk] * __float2half(grd->invVOL);
+                    weight[ii][jj][kk] = xi[ii] * eta[jj] * zeta[kk] * grdInvVOL;
 
         // set to zero local electric and magnetic field
         Exl=0.0, Eyl = 0.0, Ezl = 0.0, Bxl = 0.0, Byl = 0.0, Bzl = 0.0;
