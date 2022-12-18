@@ -2,6 +2,7 @@
 #include "Alloc.h"
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include <cuda_fp16.h>
 
 /** allocate particle arrays */
 void particle_allocate(struct parameters* param, struct particles* part, int is)
@@ -84,16 +85,18 @@ __global__ void mover_PC_kernel(struct particles * part,
 
     // auxiliary variables
     FPpart dt_sub_cycling = (FPpart) param->dt/((double) part->n_sub_cycles);
-    FPpart dto2 = .5*dt_sub_cycling, qomdt2 = part->qom*dto2/param->c;
-    FPpart omdtsq, denom, ut, vt, wt, udotb;
+    FPpart dto2 = .5*dt_sub_cycling;
+    half qomdt2 = __float2half(part->qom*dto2/param->c);
+    half omdtsq, ut, vt, wt, udotb;
+    FPpart denom;
 
     // local (to the particle) electric and magnetic field
-    FPfield Exl=0.0, Eyl=0.0, Ezl=0.0, Bxl=0.0, Byl=0.0, Bzl=0.0;
+    half Exl=0.0, Eyl=0.0, Ezl=0.0, Bxl=0.0, Byl=0.0, Bzl=0.0;
 
     // interpolation densities
     int ix,iy,iz;
-    FPfield weight[2][2][2];
-    FPfield xi[2], eta[2], zeta[2];
+    half weight[2][2][2];
+    half xi[2], eta[2], zeta[2];
 
     // intermediate particle position and velocity
     FPpart xptilde, yptilde, zptilde, uptilde, vptilde, wptilde;
@@ -120,7 +123,7 @@ __global__ void mover_PC_kernel(struct particles * part,
         for (int ii = 0; ii < 2; ii++)
             for (int jj = 0; jj < 2; jj++)
                 for (int kk = 0; kk < 2; kk++)
-                    weight[ii][jj][kk] = xi[ii] * eta[jj] * zeta[kk] * grd->invVOL;
+                    weight[ii][jj][kk] = xi[ii] * eta[jj] * zeta[kk] * __float2half(grd->invVOL);
 
         // set to zero local electric and magnetic field
         Exl=0.0, Eyl = 0.0, Ezl = 0.0, Bxl = 0.0, Byl = 0.0, Bzl = 0.0;
@@ -130,26 +133,26 @@ __global__ void mover_PC_kernel(struct particles * part,
                 for(int kk=0; kk < 2; kk++){
                     xmul = grd->nyn * grd->nzn;
                     ymul = grd->nzn;
-                    Exl += weight[ii][jj][kk]*field->Ex_flat[(ix- ii) * xmul + (iy -jj ) * ymul + iz- kk ];
-                    Eyl += weight[ii][jj][kk]*field->Ey_flat[(ix- ii) * xmul + (iy -jj ) * ymul + iz- kk ];
-                    Ezl += weight[ii][jj][kk]*field->Ez_flat[(ix- ii) * xmul + (iy -jj ) * ymul + iz -kk ];
-                    Bxl += weight[ii][jj][kk]*field->Bxn_flat[(ix- ii) * xmul + (iy -jj ) * ymul + iz -kk ];
-                    Byl += weight[ii][jj][kk]*field->Byn_flat[(ix- ii) * xmul + (iy -jj ) * ymul + iz -kk ];
-                    Bzl += weight[ii][jj][kk]*field->Bzn_flat[(ix- ii) * xmul + (iy -jj ) * ymul + iz -kk ];
+                    Exl += weight[ii][jj][kk]* __float2half(field->Ex_flat[(ix- ii) * xmul + (iy -jj ) * ymul + iz- kk ]);
+                    Eyl += weight[ii][jj][kk]* __float2half(field->Ey_flat[(ix- ii) * xmul + (iy -jj ) * ymul + iz- kk ]);
+                    Ezl += weight[ii][jj][kk]* __float2half(field->Ez_flat[(ix- ii) * xmul + (iy -jj ) * ymul + iz -kk ]);
+                    Bxl += weight[ii][jj][kk]* __float2half(field->Bxn_flat[(ix- ii) * xmul + (iy -jj ) * ymul + iz -kk ]);
+                    Byl += weight[ii][jj][kk]* __float2half(field->Byn_flat[(ix- ii) * xmul + (iy -jj ) * ymul + iz -kk ]);
+                    Bzl += weight[ii][jj][kk]* __float2half(field->Bzn_flat[(ix- ii) * xmul + (iy -jj ) * ymul + iz -kk ]);
                 }
 
         // end interpolation
         omdtsq = qomdt2*qomdt2*(Bxl*Bxl+Byl*Byl+Bzl*Bzl);
-        denom = 1.0/(1.0 + omdtsq);
+        denom = 1.0/(1.0 + __half2float(omdtsq));
         // solve the position equation
-        ut= part->u[i] + qomdt2*Exl;
-        vt= part->v[i] + qomdt2*Eyl;
-        wt= part->w[i] + qomdt2*Ezl;
+        ut= __float2half(part->u[i]) + qomdt2*Exl;
+        vt= __float2half(part->v[i]) + qomdt2*Eyl;
+        wt= __float2half(part->w[i]) + qomdt2*Ezl;
         udotb = ut*Bxl + vt*Byl + wt*Bzl;
         // solve the velocity equation
-        uptilde = (ut+qomdt2*(vt*Bzl -wt*Byl + qomdt2*udotb*Bxl))*denom;
-        vptilde = (vt+qomdt2*(wt*Bxl -ut*Bzl + qomdt2*udotb*Byl))*denom;
-        wptilde = (wt+qomdt2*(ut*Byl -vt*Bxl + qomdt2*udotb*Bzl))*denom;
+        uptilde = __half2float(ut+qomdt2*(vt*Bzl -wt*Byl + qomdt2*udotb*Bxl))*denom;
+        vptilde = __half2float(vt+qomdt2*(wt*Bxl -ut*Bzl + qomdt2*udotb*Byl))*denom;
+        wptilde = __half2float(wt+qomdt2*(ut*Byl -vt*Bxl + qomdt2*udotb*Bzl))*denom;
         // update position
         part->x[i] = xptilde + uptilde*dto2;
         part->y[i] = yptilde + vptilde*dto2;
