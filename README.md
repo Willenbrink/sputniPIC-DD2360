@@ -11,3 +11,24 @@ next step.
 6. 1.1: Evaluate implementation and write scripts to evaluate performance over many different
 simulations
 7. 12.1: Submit Report and Present
+
+TODO: 
+1. Test converting between data types within kernel.
+    Foreach variable, create half variant.
+    Convert float -> respective variant
+    do calculations
+    convert half variant -> originial float
+2. Test converting data types before data copying.
+    Create alternative structs with halfs, convert the original structs
+    alloc/memcopy
+    launch
+    memcopy()
+    convert from half structs back to original float versions.
+3. Evaluate the trade offs between faster conversion by parallelization, or faster memcopy but slower conversion.
+4. Try if that trade off is significantly different without redundant allocs/memcopies.
+    Create functions for alloc/memcopy
+    Run once before mover loop in sputniPIC.cpp
+    dealloc after.
+    Is the time different? Observations?
+5. Write report
+
