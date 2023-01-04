@@ -6,6 +6,7 @@
 #include "Alloc.h"
 #include "Parameters.h"
 #include "PrecisionTypes.h"
+#include <cuda_fp16.h>
 
 /** Grid Data */
 struct grid {
@@ -57,8 +58,25 @@ struct grid {
     /** coordinate node Z */
     FPfield* ZN_flat;
     FPfield*** ZN;
-    
-    
+};
+
+struct d_grid {
+    FPfield * XN_flat;
+    FPfield * YN_flat;
+    FPfield * ZN_flat;
+    half2 xStart;
+    half2 xEnd;
+    half2 yStart;
+    half2 yEnd;
+    half2 zStart;
+    half2 zEnd;
+    half2 Lx;
+    half2 Ly;
+    half2 Lz;
+    half2 invdx;
+    half2 invdy;
+    half2 invdz;
+    half2 invVOL;
 };
 
 /** Set up the grid quantities */

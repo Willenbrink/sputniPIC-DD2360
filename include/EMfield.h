@@ -3,6 +3,7 @@
 
 #include "Alloc.h"
 #include "Grid.h"
+#include <cuda_fp16.h>
 
 
 /** structure with field information */
@@ -25,6 +26,15 @@ struct EMfield {
     FPfield* Bzn_flat;
     
     
+};
+
+struct d_EMfield {
+    FPfield* Ex_flat;
+    FPfield* Ey_flat;
+    FPfield* Ez_flat;
+    FPfield* Bxn_flat;
+    FPfield* Byn_flat;
+    FPfield* Bzn_flat;
 };
 
 /** allocate electric and magnetic field */
